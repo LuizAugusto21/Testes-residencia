@@ -7,4 +7,14 @@ import ecommerce.external.IPagamentoExternal;
 
 @Service
 public class PagamentoSimulado implements IPagamentoExternal{
+
+    @Override
+    public PagamentoDTO autorizarPagamento(Long clienteId, Double custoTotal) {
+        return null;
+    }
+
+    @Override
+    public void cancelarPagamento(Long clienteId, Long pagamentoTransacaoId) {
+
+    }
 }
