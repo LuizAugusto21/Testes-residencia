@@ -107,9 +107,9 @@ public class CompraService {
 	private BigDecimal calcularFrete(BigDecimal pesoTotal) {
 		if (pesoTotal.compareTo(BigDecimal.valueOf(5)) <= 0) {
 			return BigDecimal.ZERO; // Até 5kg, frete grátis
-		} else if (pesoTotal.compareTo(BigDecimal.valueOf(10)) <= 0) {
+		} else if (pesoTotal.compareTo(BigDecimal.valueOf(9)) <= 0) {
 			return pesoTotal.multiply(BigDecimal.valueOf(2)); // De 5kg até 10kg, R$ 2,00 por kg
-		} else if (pesoTotal.compareTo(BigDecimal.valueOf(50)) <= 0) {
+		} else if (pesoTotal.compareTo(BigDecimal.valueOf(49)) <= 0) {
 			return pesoTotal.multiply(BigDecimal.valueOf(4)); // De 10kg até 50kg, R$ 4,00 por kg
 		} else {
 			return pesoTotal.multiply(BigDecimal.valueOf(7)); // Acima de 50kg, R$ 7,00 por kg
