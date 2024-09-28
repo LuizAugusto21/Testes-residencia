@@ -2,9 +2,9 @@ package ecommerce.external.fake;
 
 import java.util.List;
 
+import ecommerce.dto.DisponibilidadeDTO;
 import org.springframework.stereotype.Service;
 
-import ecommerce.dto.DisponibilidadeDTO;
 import ecommerce.dto.EstoqueBaixaDTO;
 import ecommerce.external.IEstoqueExternal;
 
@@ -13,7 +13,7 @@ public class EstoqueSimulado implements IEstoqueExternal {
 
     @Override
     public EstoqueBaixaDTO darBaixa(List<Long> produtosIds, List<Long> produtosQuantidades) {
-        return null;
+        return new EstoqueBaixaDTO(true);
     }
 
     @Override

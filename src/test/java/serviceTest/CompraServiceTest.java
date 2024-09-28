@@ -1,7 +1,13 @@
 package serviceTest;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
+import ecommerce.dto.CompraDTO;
+import ecommerce.dto.DisponibilidadeDTO;
+import ecommerce.dto.EstoqueBaixaDTO;
+import ecommerce.dto.PagamentoDTO;
 import ecommerce.entity.*;
 import ecommerce.external.IEstoqueExternal;
 import ecommerce.external.IPagamentoExternal;
@@ -9,6 +15,7 @@ import ecommerce.service.CarrinhoDeComprasService;
 import ecommerce.service.ClienteService;
 import ecommerce.service.CompraService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
@@ -17,7 +24,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 class CompraServiceTest {
@@ -104,4 +111,119 @@ class CompraServiceTest {
         BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoDeCompras).setScale(1);
         assertEquals(valorEsperado, custoTotal);
     }
+
+    @Test
+    void testFinalizarCompra_Sucesso() {
+        // Configuração dos mocks
+        Cliente cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
+        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
+        carrinho.setCliente(cliente);
+
+        when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
+        when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
+        when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
+                .thenReturn(new DisponibilidadeDTO(true, Collections.emptyList()));
+        when(pagamentoExternal.autorizarPagamento(anyLong(), anyDouble()))
+                .thenReturn(new PagamentoDTO(true, 123L));
+
+        // Mock da baixa no estoque
+        EstoqueBaixaDTO baixaDTO = new EstoqueBaixaDTO(true); // Crie o objeto conforme sua implementação
+        when(estoqueExternal.darBaixa(anyList(), anyList())).thenReturn(baixaDTO);
+        // Chamada ao método
+        CompraDTO resultado = compraService.finalizarCompra(1L, 1L);
+
+        // Verificações
+        assertNotNull(resultado);
+        assertTrue(resultado.sucesso());
+        assertEquals("Compra finalizada com sucesso.", resultado.mensagem());
+        assertEquals(123L, resultado.transacaoPagamentoId());
+    }
+
+    @Test
+    void testFinalizarCompra_EstoqueIndisponivel() {
+        // Mock do cliente
+        Cliente cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
+
+        // Mock do carrinho
+        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
+        carrinho.setCliente(cliente);
+
+        // Mock do estoque (produtos indisponíveis)
+        when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
+                .thenReturn(new DisponibilidadeDTO(false, List.of(1L)));
+
+        // Mock dos serviços
+        when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
+        when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
+
+
+        Exception exception = assertThrows(IllegalStateException.class, () -> {
+            compraService.finalizarCompra(1L, 1L);
+        });
+
+        assertEquals("Itens fora de estoque.", exception.getMessage());
+    }
+
+    @Test
+    void testFinalizarCompra_PagamentoNaoAutorizado() {
+        // Mock do cliente
+        Cliente cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
+
+        // Mock do carrinho
+        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
+        carrinho.setCliente(cliente);
+
+        // Mock do estoque (tudo disponível)
+        when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
+                .thenReturn(new DisponibilidadeDTO(true, Collections.emptyList()));
+
+        // Mock do pagamento não autorizado
+        when(pagamentoExternal.autorizarPagamento(anyLong(), anyDouble()))
+                .thenReturn(new PagamentoDTO(false, null)); // Simulando pagamento não autorizado
+
+        // Mock dos serviços
+        when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
+        when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
+
+
+        Exception exception = assertThrows(IllegalStateException.class, () -> {
+            compraService.finalizarCompra(1L, 1L);
+        });
+
+        assertEquals("Pagamento não autorizado.", exception.getMessage());
+    }
+
+    @Test
+    void testFinalizarCompra_ErroBaixaEstoque() {
+        // Mock do cliente
+        Cliente cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
+
+        // Mock do carrinho
+        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
+        carrinho.setCliente(cliente); // Certifique-se de que o cliente não seja nulo
+
+        // Mock do estoque (tudo disponível)
+        when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
+                .thenReturn(new DisponibilidadeDTO(true, Collections.emptyList()));
+
+        // Mock do pagamento autorizado
+        when(pagamentoExternal.autorizarPagamento(anyLong(), anyDouble()))
+                .thenReturn(new PagamentoDTO(true, 123L));
+
+        // Mock da baixa no estoque (falha)
+        EstoqueBaixaDTO baixaDTO = new EstoqueBaixaDTO(false);
+        when(estoqueExternal.darBaixa(anyList(), anyList())).thenReturn(baixaDTO);
+
+        // Mock dos serviços
+        when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
+        when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
+
+        // Chamada ao controller e verificação da exceção
+        Exception exception = assertThrows(IllegalStateException.class, () -> {
+            compraService.finalizarCompra(1L, 1L);
+        });
+
+        assertEquals("Erro ao dar baixa no estoque.", exception.getMessage());
+    }
+
 }
