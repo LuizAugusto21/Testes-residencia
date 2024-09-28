@@ -42,11 +42,17 @@ class CompraServiceTest {
     private IPagamentoExternal pagamentoExternal;
 
     @InjectMocks
-    private CompraService compraService; // CompraService com dependências mockadas
+    private CompraService compraService;
+
+    private Cliente cliente;
+    private CarrinhoDeCompras carrinho;
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.openMocks(this); // Inicializa os mocks
+        MockitoAnnotations.openMocks(this);
+        cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
+        carrinho = new CarrinhoDeCompras();
+        carrinho.setCliente(cliente);
     }
 
     @ParameterizedTest
@@ -96,13 +102,12 @@ class CompraServiceTest {
             "BRONZE, 70.0, 1200.0, 1450.0"  // Frete integral, 20% desconto
     })
     void testCalcularCustoTotal(String tipoCliente, double pesoTotal, double valorItens, BigDecimal valorEsperado) {
+
         Cliente cliente = new Cliente(1L, "Test", "Rua Teste", TipoCliente.valueOf(tipoCliente));
 
-        // Criando o produto com os valores de peso e preço
         Produto produto = new Produto(1L, "Produto", "Descrição do produto", BigDecimal.valueOf(valorItens), (int) pesoTotal, TipoProduto.ELETRONICO);
 
-        // Criando o item de compra com o produto e a quantidade
-        ItemCompra itemCompra = new ItemCompra(1L, produto, 1L); // Quantidade de 1 para simplificar
+        ItemCompra itemCompra = new ItemCompra(1L, produto, 1L);
 
         List<ItemCompra> itens = List.of(itemCompra);
 
@@ -114,10 +119,6 @@ class CompraServiceTest {
 
     @Test
     void testFinalizarCompra_Sucesso() {
-        // Configuração dos mocks
-        Cliente cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
-        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
-        carrinho.setCliente(cliente);
 
         when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
         when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
@@ -126,13 +127,14 @@ class CompraServiceTest {
         when(pagamentoExternal.autorizarPagamento(anyLong(), anyDouble()))
                 .thenReturn(new PagamentoDTO(true, 123L));
 
-        // Mock da baixa no estoque
-        EstoqueBaixaDTO baixaDTO = new EstoqueBaixaDTO(true); // Crie o objeto conforme sua implementação
+
+        EstoqueBaixaDTO baixaDTO = new EstoqueBaixaDTO(true);
         when(estoqueExternal.darBaixa(anyList(), anyList())).thenReturn(baixaDTO);
-        // Chamada ao método
+
+
         CompraDTO resultado = compraService.finalizarCompra(1L, 1L);
 
-        // Verificações
+
         assertNotNull(resultado);
         assertTrue(resultado.sucesso());
         assertEquals("Compra finalizada com sucesso.", resultado.mensagem());
@@ -141,18 +143,12 @@ class CompraServiceTest {
 
     @Test
     void testFinalizarCompra_EstoqueIndisponivel() {
-        // Mock do cliente
-        Cliente cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
-
-        // Mock do carrinho
-        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
-        carrinho.setCliente(cliente);
 
         // Mock do estoque (produtos indisponíveis)
         when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
                 .thenReturn(new DisponibilidadeDTO(false, List.of(1L)));
 
-        // Mock dos serviços
+
         when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
         when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
 
@@ -166,22 +162,15 @@ class CompraServiceTest {
 
     @Test
     void testFinalizarCompra_PagamentoNaoAutorizado() {
-        // Mock do cliente
-        Cliente cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
 
-        // Mock do carrinho
-        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
-        carrinho.setCliente(cliente);
 
-        // Mock do estoque (tudo disponível)
         when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
                 .thenReturn(new DisponibilidadeDTO(true, Collections.emptyList()));
 
         // Mock do pagamento não autorizado
         when(pagamentoExternal.autorizarPagamento(anyLong(), anyDouble()))
-                .thenReturn(new PagamentoDTO(false, null)); // Simulando pagamento não autorizado
+                .thenReturn(new PagamentoDTO(false, null));
 
-        // Mock dos serviços
         when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
         when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
 
@@ -195,18 +184,11 @@ class CompraServiceTest {
 
     @Test
     void testFinalizarCompra_ErroBaixaEstoque() {
-        // Mock do cliente
-        Cliente cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
 
-        // Mock do carrinho
-        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
-        carrinho.setCliente(cliente); // Certifique-se de que o cliente não seja nulo
-
-        // Mock do estoque (tudo disponível)
         when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
                 .thenReturn(new DisponibilidadeDTO(true, Collections.emptyList()));
 
-        // Mock do pagamento autorizado
+
         when(pagamentoExternal.autorizarPagamento(anyLong(), anyDouble()))
                 .thenReturn(new PagamentoDTO(true, 123L));
 
@@ -214,11 +196,11 @@ class CompraServiceTest {
         EstoqueBaixaDTO baixaDTO = new EstoqueBaixaDTO(false);
         when(estoqueExternal.darBaixa(anyList(), anyList())).thenReturn(baixaDTO);
 
-        // Mock dos serviços
+
         when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
         when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
 
-        // Chamada ao controller e verificação da exceção
+
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             compraService.finalizarCompra(1L, 1L);
         });
