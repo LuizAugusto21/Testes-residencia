@@ -68,5 +68,13 @@ A funcionalidade de finalização de compra realiza as seguintes operações:
      ```
  - Nesta pasta, você encontrará todos os testes implementados para o projeto, organizados em pacotes que correspondem à estrutura do código principal.
 
+## 📊 Tabela de Decisão e Critérios de Testes
+
+Os critérios de teste para a funcionalidade de cálculo de custo total no e-commerce foram estruturados com base nas seguintes metodologias:
+
+- **Partições em Classes de Equivalência**: Para garantir que diferentes entradas que produzem o mesmo resultado sejam testadas de forma eficiente.
+- **Análise de Valor Limite**: Para verificar o comportamento do sistema em pontos críticos, como os limites de peso e custo.
+
+A tabela de decisão correspondente pode ser visualizada no arquivo [tabela_de_decisao.xlsx](tabela_de_decisao.xlsx).
 
 
