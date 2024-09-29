@@ -68,6 +68,17 @@ A funcionalidade de finalização de compra realiza as seguintes operações:
      ```
  - Nesta pasta, você encontrará todos os testes implementados para o projeto, organizados em pacotes que correspondem à estrutura do código principal.
 
+## ✅ Como verificar a cobertura dos testes
+ **No Eclipse**
+   - Instale o plugin EclEmma.
+   - Clique com o botão direito na classe de teste ou na pasta de testes.
+   - Selecione Coverage As > JUnit Test.
+   - A visualização de cobertura aparecerá mostrando a cobertura de código.
+ **No IntelliJ**
+   - Clique com o botão direito na classe de teste ou no diretório de testes.
+   - Selecione Run with Coverage.
+   - Após a execução, você verá um relatório de cobertura detalhado na parte inferior ou lateral da IDE.
+
 ## 📊 Tabela de Decisão e Critérios de Testes
 
 Os critérios de teste para a funcionalidade de cálculo de custo total no e-commerce foram estruturados com base nas seguintes metodologias:
