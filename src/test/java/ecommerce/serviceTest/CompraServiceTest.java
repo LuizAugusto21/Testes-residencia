@@ -1,4 +1,4 @@
-package serviceTest;
+package ecommerce.serviceTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -50,9 +50,21 @@ class CompraServiceTest {
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+
         cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
+
+        Produto produto = new Produto(1L, "Produto", "Descrição do produto", BigDecimal.valueOf(300), 60, TipoProduto.ELETRONICO);
+
+        ItemCompra itemCompra = new ItemCompra(1L, produto, 1L);
+
+        List<ItemCompra> itens = List.of(itemCompra);
+
         carrinho = new CarrinhoDeCompras();
         carrinho.setCliente(cliente);
+        carrinho.setItens(itens);
+
+        when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
+        when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
     }
 
     @ParameterizedTest
@@ -120,8 +132,6 @@ class CompraServiceTest {
     @Test
     void testFinalizarCompra_Sucesso() {
 
-        when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
-        when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
         when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
                 .thenReturn(new DisponibilidadeDTO(true, Collections.emptyList()));
         when(pagamentoExternal.autorizarPagamento(anyLong(), anyDouble()))
@@ -149,10 +159,6 @@ class CompraServiceTest {
                 .thenReturn(new DisponibilidadeDTO(false, List.of(1L)));
 
 
-        when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
-        when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
-
-
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             compraService.finalizarCompra(1L, 1L);
         });
@@ -170,10 +176,6 @@ class CompraServiceTest {
         // Mock do pagamento não autorizado
         when(pagamentoExternal.autorizarPagamento(anyLong(), anyDouble()))
                 .thenReturn(new PagamentoDTO(false, null));
-
-        when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
-        when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
-
 
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             compraService.finalizarCompra(1L, 1L);
@@ -195,10 +197,6 @@ class CompraServiceTest {
         // Mock da baixa no estoque (falha)
         EstoqueBaixaDTO baixaDTO = new EstoqueBaixaDTO(false);
         when(estoqueExternal.darBaixa(anyList(), anyList())).thenReturn(baixaDTO);
-
-
-        when(clienteService.buscarPorId(anyLong())).thenReturn(cliente);
-        when(carrinhoService.buscarPorCarrinhoIdEClienteId(anyLong(), any(Cliente.class))).thenReturn(carrinho);
 
 
         Exception exception = assertThrows(IllegalStateException.class, () -> {

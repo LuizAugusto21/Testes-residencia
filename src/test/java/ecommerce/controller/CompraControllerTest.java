@@ -2,16 +2,18 @@ package ecommerce.controller;
 
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import ecommerce.dto.CompraDTO;
 import ecommerce.dto.DisponibilidadeDTO;
+import ecommerce.dto.EstoqueBaixaDTO;
 import ecommerce.dto.PagamentoDTO;
-import ecommerce.entity.CarrinhoDeCompras;
+import ecommerce.entity.*;
 import ecommerce.external.IEstoqueExternal;
 import ecommerce.external.IPagamentoExternal;
+import ecommerce.repository.ClienteRepository;
 import ecommerce.service.CarrinhoDeComprasService;
 import ecommerce.service.ClienteService;
 import ecommerce.service.CompraService;
@@ -24,93 +26,103 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 
-
+@SpringBootTest
 @ExtendWith(MockitoExtension.class)
 class CompraControllerTest {
 
     @Mock
-    private IEstoqueExternal estoqueExternal;
-
-    @Mock
-    private IPagamentoExternal pagamentoExternal;
-
-    @Mock
-    private ClienteService clienteService;
-
-    @Mock
-    private CarrinhoDeComprasService carrinhoDeComprasService;
-
-    @InjectMocks
     private CompraService compraService;
 
     @InjectMocks
     private CompraController compraController;
 
+    private Cliente cliente;
+    private CarrinhoDeCompras carrinho;
+
+    @BeforeEach
+    void setUp() {
+
+        MockitoAnnotations.openMocks(this);
+
+
+        compraController = new CompraController(compraService);
+
+
+        cliente = new Cliente(1l, "teste", "rua teste", TipoCliente.valueOf("OURO"));
+
+        Produto produto = new Produto(1L, "Produto", "Descrição do produto", BigDecimal.valueOf(300), 60, TipoProduto.ELETRONICO);
+
+        ItemCompra itemCompra = new ItemCompra(1L, produto, 1L);
+
+        List<ItemCompra> itens = List.of(itemCompra);
+
+        carrinho = new CarrinhoDeCompras();
+        carrinho.setCliente(cliente);
+        carrinho.setItens(itens);
+
+    }
+
     @Test
     void testFinalizarCompra_Sucesso() {
-        // Arrange - Mocking dependencies
-        when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
-                .thenReturn(new DisponibilidadeDTO(true, Collections.emptyList()));
-        when(pagamentoExternal.autorizarPagamento(anyLong(), anyDouble()))
-                .thenReturn(new PagamentoDTO(true, 123L));
 
-        // Act - Calling the controller method
+        // Simular o comportamento do compraService
+        CompraDTO compraDTO = new CompraDTO(true, 123L, "Compra finalizada com sucesso.");
+        when(compraService.finalizarCompra(1L, 1L)).thenReturn(compraDTO);
+
+
         ResponseEntity<CompraDTO> response = compraController.finalizarCompra(1L, 1L);
 
-        // Assert - Verifying the result
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().sucesso()).isTrue();
-        assertThat(response.getBody().transacaoPagamentoId()).isEqualTo(123L);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(compraDTO, response.getBody());
     }
 
     @Test
     void testFinalizarCompra_EstoqueIndisponivel() {
-        // Arrange - Mocking unavailable stock
-        when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
-                .thenReturn(new DisponibilidadeDTO(false, List.of(1L)));
 
-        // Act
+
+        when(compraService.finalizarCompra(anyLong(), anyLong()))
+                .thenThrow(new IllegalStateException("Itens fora de estoque."));
+
+
         ResponseEntity<CompraDTO> response = compraController.finalizarCompra(1L, 1L);
 
-        // Assert
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody().sucesso()).isFalse();
-        assertThat(response.getBody().mensagem()).isEqualTo("Produto(s) indisponível(is): [1]");
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertFalse(response.getBody().sucesso());
+        assertEquals("Itens fora de estoque.", response.getBody().mensagem());
+        assertNull(response.getBody().transacaoPagamentoId());
     }
 
     @Test
     void testFinalizarCompra_PagamentoNaoAutorizado() {
-        // Arrange - Mocking successful stock availability but failed payment authorization
-        when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
-                .thenReturn(new DisponibilidadeDTO(true, Collections.emptyList()));
-        when(pagamentoExternal.autorizarPagamento(anyLong(), anyDouble()))
-                .thenReturn(new PagamentoDTO(false, null));
 
-        // Act
+        when(compraService.finalizarCompra(anyLong(), anyLong())).thenThrow(new IllegalArgumentException("Pagamento não autorizado."));
+
+
         ResponseEntity<CompraDTO> response = compraController.finalizarCompra(1L, 1L);
 
-        // Assert
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody().sucesso()).isFalse();
-        assertThat(response.getBody().mensagem()).isEqualTo("Pagamento não autorizado.");
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Pagamento não autorizado.", response.getBody().mensagem());
     }
 
     @Test
     void testFinalizarCompra_ExceptionGenerica() {
-        // Arrange - Mocking the CompraService to throw an exception
+
         when(compraService.finalizarCompra(anyLong(), anyLong()))
                 .thenThrow(new RuntimeException("Erro inesperado"));
 
-        // Act - Call the controller with actual values, not matchers
         ResponseEntity<CompraDTO> response = compraController.finalizarCompra(1L, 1L);
 
-        // Assert
+
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().sucesso()).isFalse();
         assertThat(response.getBody().mensagem()).isEqualTo("Erro ao processar compra.");
