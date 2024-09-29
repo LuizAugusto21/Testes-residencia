@@ -1,4 +1,4 @@
-# 🛒 Testes Automatizados - Finalização de Compra
+# 🛒 Testes Automatizados em um E-commerce
 
 ## 📄 Descrição
 
@@ -27,10 +27,10 @@ O projeto segue uma arquitetura organizada em três camadas principais:
 
 A funcionalidade de finalização de compra realiza as seguintes operações:
 
-1. 🔄 **Consulta ao serviço de estoque**: Verifica se há quantidade suficiente de cada produto.
-2. 🧮 **Cálculo do preço total**: Aplica descontos e calcula o frete.
-3. 💳 **Verificação de pagamento**: Consulta o serviço de pagamentos.
-4. 📦 **Atualização do estoque**: Dá baixa no estoque após o pagamento autorizado.
+1.  **Consulta ao serviço de estoque**: Verifica se há quantidade suficiente de cada produto.
+2.  **Cálculo do preço total**: Aplica descontos e calcula o frete.
+3.  **Verificação de pagamento**: Consulta o serviço de pagamentos.
+4.  **Atualização do estoque**: Dá baixa no estoque após o pagamento autorizado.
 
 ## 📏 Regras de Negócio
 
@@ -47,16 +47,34 @@ A funcionalidade de finalização de compra realiza as seguintes operações:
 - Compras acima de **R$ 500,00**: **10% de desconto** nos itens (excluindo o frete).
 - Compras acima de **R$ 1.000,00**: **20% de desconto** nos itens (excluindo o frete).
 
-## 🚀 Como Executar o Projeto
+# 🚀 Como Executar o Projeto
 
-- Clonar o repositório e seguir as instruções no código.
+1. **Clonar o Repositório**:
+   - Use o comando abaixo no terminal para clonar o repositório:
+     ```bash
+     git clone https://github.com/LuizAugusto21/Testes-residencia.git
+     ```
+
+2. **Abrir na IDE**:
+   - Abra a IDE de sua escolha (IntelliJ IDEA, Eclipse).
+   - Selecione a opção para abrir um projeto e navegue até a pasta clonada.
+
 
 ## ✅ Como Executar os Testes
 
-- Clonar o repositório, rodar os testes e verificar a cobertura de código.
+- Após abrir o projeto, navegue até a seguinte pasta:
+     ```
+     src/test/java
+     ```
+ - Nesta pasta, você encontrará todos os testes implementados para o projeto, organizados em pacotes que correspondem à estrutura do código principal.
 
 ## 📊 Tabela de Decisão e Critérios de Testes
 
-Os critérios de teste foram organizados usando:
-- **Partições em Classes de Equivalência**.
-- **Análise de Valor Limite**.
+Os critérios de teste para a funcionalidade de cálculo de custo total no e-commerce foram estruturados com base nas seguintes metodologias:
+
+- **Partições em Classes de Equivalência**: Para garantir que diferentes entradas que produzem o mesmo resultado sejam testadas de forma eficiente.
+- **Análise de Valor Limite**: Para verificar o comportamento do sistema em pontos críticos, como os limites de peso e custo.
+
+A tabela de decisão correspondente pode ser visualizada no arquivo [tabela_de_decisao.xlsx](tabela_de_decisao.xlsx).
+
+
